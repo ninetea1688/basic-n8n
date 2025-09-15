@@ -1,0 +1,346 @@
+{
+  "name": "AI Content Generation Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "generate-content",
+        "options": {}
+      },
+      "id": "a1b2c3d4-1111-2222-3333-444455556666",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        720,
+        300
+      ],
+      "webhookId": "12345678-1234-1234-1234-123456789012"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.body.api_url || 'https://jsonplaceholder.typicode.com/posts/1' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "User-Agent",
+              "value": "n8n-ai-content-generator"
+            }
+          ]
+        },
+        "sendQuery": false,
+        "sendBody": false,
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "b2c3d4e5-2222-3333-4444-555566667777",
+      "name": "HTTP Request - Get Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "source_data",
+              "value": "={{ JSON.stringify($json) }}"
+            },
+            {
+              "name": "content_topic",
+              "value": "={{ $('Webhook Trigger').item.json.body.topic || $json.title || 'General Topic' }}"
+            },
+            {
+              "name": "content_type",
+              "value": "={{ $('Webhook Trigger').item.json.body.content_type || 'article' }}"
+            },
+            {
+              "name": "target_audience",
+              "value": "={{ $('Webhook Trigger').item.json.body.audience || 'general public' }}"
+            },
+            {
+              "name": "content_length",
+              "value": "={{ $('Webhook Trigger').item.json.body.length || 'medium' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c3d4e5f6-3333-4444-5555-666677778888",
+      "name": "Prepare AI Prompt",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "text",
+        "operation": "complete",
+        "model": "gpt-3.5-turbo",
+        "prompt": "=สร้างเนื้อหา{{ $json.content_type }}เกี่ยวกับหัวข้อ: {{ $json.content_topic }}\n\nข้อมูลอ้างอิง: {{ $json.source_data }}\n\nกลุ่มเป้าหมาย: {{ $json.target_audience }}\nความยาว: {{ $json.content_length }}\n\nกรุณาสร้างเนื้อหาที่:\n- น่าสนใจและมีประโยชน์\n- เหมาะสมกับกลุ่มเป้าหมาย\n- มีโครงสร้างที่ชัดเจน\n- ใช้ภาษาไทยที่เข้าใจง่าย\n- มีการอ้างอิงข้อมูลที่ให้มา\n\nเนื้อหา:",
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 1500,
+          "topP": 1,
+          "frequencyPenalty": 0,
+          "presencePenalty": 0
+        }
+      },
+      "id": "d4e5f6g7-4444-5555-6666-777788889999",
+      "name": "OpenAI - Generate Content",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [
+        1380,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "generated_content",
+              "value": "={{ $json.choices[0].message.content }}"
+            },
+            {
+              "name": "content_title",
+              "value": "={{ $('Prepare AI Prompt').item.json.content_topic }}"
+            },
+            {
+              "name": "content_type",
+              "value": "={{ $('Prepare AI Prompt').item.json.content_type }}"
+            },
+            {
+              "name": "target_audience",
+              "value": "={{ $('Prepare AI Prompt').item.json.target_audience }}"
+            },
+            {
+              "name": "word_count",
+              "value": "={{ $json.choices[0].message.content.split(' ').length }}"
+            },
+            {
+              "name": "created_at",
+              "value": "={{ new Date().toISOString() }}"
+            },
+            {
+              "name": "tokens_used",
+              "value": "={{ $json.usage.total_tokens }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e5f6g7h8-5555-6666-7777-888899990000",
+      "name": "Format Content Data",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1600,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "insert",
+        "table": "ai_generated_content",
+        "columns": "title, content, content_type, target_audience, word_count, tokens_used, created_at",
+        "additionalFields": {
+          "mode": "multiple"
+        },
+        "options": {}
+      },
+      "id": "f6g7h8i9-6666-7777-8888-999900001111",
+      "name": "MySQL - Save Content",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2.4,
+      "position": [
+        1820,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@yourcompany.com",
+        "toEmail": "={{ $('Webhook Trigger').item.json.body.email || 'admin@yourcompany.com' }}",
+        "subject": "🤖 เนื้อหา AI ใหม่ถูกสร้างแล้ว: {{ $('Format Content Data').item.json.content_title }}",
+        "emailFormat": "html",
+        "message": "=<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <style>\n        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n        .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n        .header { background: #4CAF50; color: white; padding: 20px; text-align: center; }\n        .content { padding: 20px; background: #f9f9f9; }\n        .footer { padding: 10px; text-align: center; font-size: 12px; color: #666; }\n        .stats { background: #e8f5e8; padding: 15px; margin: 10px 0; border-radius: 5px; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>🤖 เนื้อหา AI ใหม่ถูกสร้างแล้ว</h1>\n        </div>\n        <div class=\"content\">\n            <h2>{{ $('Format Content Data').item.json.content_title }}</h2>\n            \n            <div class=\"stats\">\n                <strong>📊 สถิติเนื้อหา:</strong><br>\n                📝 ประเภท: {{ $('Format Content Data').item.json.content_type }}<br>\n                👥 กลุ่มเป้าหมาย: {{ $('Format Content Data').item.json.target_audience }}<br>\n                📏 จำนวนคำ: {{ $('Format Content Data').item.json.word_count }} คำ<br>\n                🔢 Tokens ที่ใช้: {{ $('Format Content Data').item.json.tokens_used }}<br>\n                🕐 สร้างเมื่อ: {{ new Date($('Format Content Data').item.json.created_at).toLocaleString('th-TH') }}\n            </div>\n            \n            <h3>📄 เนื้อหาที่สร้าง:</h3>\n            <div style=\"background: white; padding: 15px; border-left: 4px solid #4CAF50; margin: 10px 0;\">\n                {{ $('Format Content Data').item.json.generated_content.replace(/\\n/g, '<br>') }}\n            </div>\n            \n            <p><strong>💡 หมายเหตุ:</strong> เนื้อหานี้ถูกสร้างโดย AI และได้รับการบันทึกในฐานข้อมูลแล้ว</p>\n        </div>\n        <div class=\"footer\">\n            <p>ส่งโดยระบบ n8n AI Content Generator</p>\n        </div>\n    </div>\n</body>\n</html>",
+        "options": {
+          "allowUnauthorizedCerts": false
+        }
+      },
+      "id": "g7h8i9j0-7777-8888-9999-000011112222",
+      "name": "Email - Send Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1820,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"message\": \"เนื้อหา AI ถูกสร้างและบันทึกเรียบร้อยแล้ว\",\n  \"data\": {\n    \"title\": \"{{ $('Format Content Data').item.json.content_title }}\",\n    \"content_type\": \"{{ $('Format Content Data').item.json.content_type }}\",\n    \"word_count\": {{ $('Format Content Data').item.json.word_count }},\n    \"tokens_used\": {{ $('Format Content Data').item.json.tokens_used }},\n    \"created_at\": \"{{ $('Format Content Data').item.json.created_at }}\"\n  }\n}",
+        "options": {}
+      },
+      "id": "h8i9j0k1-8888-9999-0000-111122223333",
+      "name": "Response to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 AI Content Generation Workflow\n\n### การทำงาน:\n1. **Webhook Trigger**: รับคำขอสร้างเนื้อหา\n2. **HTTP Request**: ดึงข้อมูลจาก API ภายนอก\n3. **Prepare AI Prompt**: เตรียมข้อมูลสำหรับ AI\n4. **OpenAI**: สร้างเนื้อหาด้วย GPT\n5. **Format Data**: จัดรูปแบบข้อมูล\n6. **MySQL**: บันทึกลงฐานข้อมูล\n7. **Email**: ส่งการแจ้งเตือน\n8. **Response**: ตอบกลับผลลัพธ์\n\n### การใช้งาน:\nPOST /webhook/generate-content\n```json\n{\n  \"topic\": \"หัวข้อที่ต้องการ\",\n  \"content_type\": \"article\",\n  \"audience\": \"กลุ่มเป้าหมาย\",\n  \"length\": \"medium\",\n  \"email\": \"user@example.com\",\n  \"api_url\": \"https://api.example.com/data\"\n}\n```",
+        "height": 464,
+        "width": 389
+      },
+      "id": "i9j0k1l2-9999-0000-1111-222233334444",
+      "name": "Workflow Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        80
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request - Get Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request - Get Data": {
+      "main": [
+        [
+          {
+            "node": "Prepare AI Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare AI Prompt": {
+      "main": [
+        [
+          {
+            "node": "OpenAI - Generate Content",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI - Generate Content": {
+      "main": [
+        [
+          {
+            "node": "Format Content Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Content Data": {
+      "main": [
+        [
+          {
+            "node": "MySQL - Save Content",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email - Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL - Save Content": {
+      "main": [
+        [
+          {
+            "node": "Response to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email - Send Notification": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "45678901-4567-4567-4567-456789012345",
+  "id": "4",
+  "meta": {
+    "instanceId": "45678901234567890123456789012345"
+  },
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "7",
+      "name": "ai-content"
+    },
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "8",
+      "name": "openai"
+    },
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "9",
+      "name": "mysql"
+    },
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "10",
+      "name": "email"
+    }
+  ]
+}

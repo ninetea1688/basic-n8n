@@ -1,0 +1,113 @@
+{
+  "name": "API to Google Sheets with Telegram Notify",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e6a2b5b3-8c76-47b6-b873-1f1966a3a7c6",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "id": "9ac18e88-01e4-4458-a53f-4e0ab39371dc",
+      "name": "Get Users API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "documentId": "",
+        "sheetName": "",
+        "operation": "append",
+        "fields": {
+          "mappingMode": "mapAll",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "4b6f120c-ed4a-471a-b60b-8d8a7c6b50e3",
+      "name": "Save to Google Sheet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": ""
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "",
+        "text": "=Successfully added {{ $input.all().length }} users to Google Sheets.",
+        "options": {}
+      },
+      "id": "7f92e7ef-e479-445b-9d41-e2c340b4cc52",
+      "name": "Send Telegram Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": ""
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Get Users API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Users API": {
+      "main": [
+        [
+          {
+            "node": "Save to Google Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Google Sheet": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Notify",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,61 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=${N8N_BASIC_AUTH_USER:-admin}
+      - N8N_BASIC_AUTH_PASSWORD=${N8N_BASIC_AUTH_PASSWORD:-password}
+      - N8N_HOST=${N8N_HOST:-localhost}
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=${N8N_PROTOCOL:-http}
+      - WEBHOOK_URL=${WEBHOOK_URL:-http://localhost:5678/}
+      - GENERIC_TIMEZONE=${GENERIC_TIMEZONE:-Asia/Bangkok}
+      - DB_TYPE=sqlite
+      - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./workflows:/home/node/.n8n/workflows
+      - ./credentials:/home/node/.n8n/credentials
+    networks:
+      - n8n-network
+
+  # Ollama AI Model Server
+  ollama:
+    image: ollama/ollama:latest
+    container_name: n8n-ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    networks:
+      - n8n-network
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+
+  # Optional: PostgreSQL database (uncomment if you prefer PostgreSQL over SQLite)
+  # postgres:
+  #   image: postgres:13
+  #   container_name: n8n-postgres
+  #   restart: unless-stopped
+  #   environment:
+  #     - POSTGRES_DB=${POSTGRES_DB:-n8n}
+  #     - POSTGRES_USER=${POSTGRES_USER:-n8n}
+  #     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-n8n}
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - n8n-network
+
+volumes:
+  n8n_data:
+  ollama_data:
+  # postgres_data:  # Uncomment if using PostgreSQL
+
+networks:
+  n8n-network:
+    driver: bridge

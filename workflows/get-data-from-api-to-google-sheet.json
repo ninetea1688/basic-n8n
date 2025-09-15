@@ -1,0 +1,84 @@
+{
+  "name": "Fetch Users to Google Sheets",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "7662c195-2c93-4702-8f9f-7b0b63b90d3d",
+      "name": "When clicking \"Execute Workflow\"",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        840,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "id": "4ed4d39c-85a0-4a84-a169-14a51ab523de",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1060,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": "",
+        "sheetName": "",
+        "fields": {
+          "mappingMode": "mapAll",
+          "value": {}
+        },
+        "options": {}
+      },
+      "id": "0d6d5386-b4ad-4f63-ad2f-d89de643c162",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        1280,
+        440
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": ""
+        }
+      }
+    }
+  ],
+  "connections": {
+    "When clicking \"Execute Workflow\"": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "z8aY7eUmz3VkWxTW"
+}

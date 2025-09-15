@@ -1,0 +1,346 @@
+{
+  "name": "Google Sheets to Telegram Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-1111-2222-3333-444455556666",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "authentication": "serviceAccount",
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "range": "A:Z",
+        "options": {
+          "valueRenderMode": "FORMATTED_VALUE"
+        }
+      },
+      "id": "b2c3d4e5-2222-3333-4444-555566667777",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c3d4e5f6-3333-4444-5555-666677778888",
+              "leftValue": "={{ $json.length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "d4e5f6g7-4444-5555-6666-777788889999",
+      "name": "Check Data Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1160,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ประมวลผลข้อมูลจาก Google Sheets สำหรับ Telegram Bot\nconst data = $input.all();\nconst rows = data[0].json;\n\nif (!rows || rows.length === 0) {\n  return [];\n}\n\n// หาแถวล่าสุดที่มีข้อมูล\nconst latestRow = rows[rows.length - 1];\n\n// สร้างข้อความสำหรับ Telegram (รองรับ Markdown)\nlet message = '*📊 อัปเดตข้อมูลใหม่จาก Google Sheets*\\n\\n';\n\n// วนลูปผ่าน columns ที่มีข้อมูล\nObject.keys(latestRow).forEach(key => {\n  if (latestRow[key] && latestRow[key].toString().trim() !== '') {\n    message += `*${key}:* ${latestRow[key]}\\n`;\n  }\n});\n\nmessage += `\\n🕐 *เวลาที่อัปเดต:* ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`;\n\n// สร้าง Inline Keyboard สำหรับ Telegram\nconst inlineKeyboard = {\n  \"inline_keyboard\": [\n    [\n      {\n        \"text\": \"📊 ดูข้อมูลทั้งหมด\",\n        \"callback_data\": \"view_all_data\"\n      },\n      {\n        \"text\": \"🔄 รีเฟรช\",\n        \"callback_data\": \"refresh_data\"\n      }\n    ],\n    [\n      {\n        \"text\": \"📝 เปิด Google Sheets\",\n        \"url\": \"https://docs.google.com/spreadsheets/d/YOUR_GOOGLE_SHEET_ID\"\n      }\n    ],\n    [\n      {\n        \"text\": \"📈 ดูกราฟ\",\n        \"callback_data\": \"view_chart\"\n      },\n      {\n        \"text\": \"📋 ส่งออกข้อมูล\",\n        \"callback_data\": \"export_data\"\n      }\n    ]\n  ]\n};\n\nreturn [{\n  json: {\n    message: message,\n    inlineKeyboard: inlineKeyboard,\n    totalRows: rows.length,\n    latestData: latestRow,\n    timestamp: new Date().toISOString(),\n    // สำหรับ fallback เป็น plain text\n    plainMessage: `📊 อัปเดตข้อมูลใหม่จาก Google Sheets\\n\\n${Object.keys(latestRow).map(key => latestRow[key] ? `${key}: ${latestRow[key]}` : '').filter(Boolean).join('\\n')}\\n\\n🕐 ${new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })}`\n  }\n}];"
+      },
+      "id": "e5f6g7h8-5555-6666-7777-888899990000",
+      "name": "Process Sheet Data for Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{ $('Set Bot Token').item.json.botToken }}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "jsonBody": "={\n  \"chat_id\": \"{{ $('Set Bot Token').item.json.chatId }}\",\n  \"text\": \"{{ $json.message }}\",\n  \"parse_mode\": \"Markdown\",\n  \"reply_markup\": $json.inlineKeyboard\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "f6g7h8i9-6666-7777-8888-999900001111",
+      "name": "Telegram Bot - Send Message",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1600,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot{{ $('Set Bot Token').item.json.botToken }}/sendMessage",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": []
+        },
+        "jsonBody": "={\n  \"chat_id\": \"{{ $('Set Bot Token').item.json.chatId }}\",\n  \"text\": \"ℹ️ *ไม่พบข้อมูลใหม่*\\n\\nไม่พบข้อมูลใหม่ใน Google Sheets ณ เวลา \" + new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' }),\n  \"parse_mode\": \"Markdown\"\n}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "g7h8i9j0-7777-8888-9999-000011112222",
+      "name": "Telegram Bot - No Data",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        1600,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "botToken",
+              "value": "YOUR_TELEGRAM_BOT_TOKEN"
+            },
+            {
+              "name": "chatId",
+              "value": "YOUR_TELEGRAM_CHAT_ID"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "h8i9j0k1-8888-9999-0000-111122223333",
+      "name": "Set Bot Token",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1200,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 Google Sheets to Telegram Bot Workflow\n\n### การทำงาน:\n1. **Schedule Trigger**: ตรวจสอบทุก 5 นาที\n2. **Google Sheets**: อ่านข้อมูลจาก Google Sheets\n3. **Check Data**: ตรวจสอบว่ามีข้อมูลหรือไม่\n4. **Process Data**: สร้างข้อความ Markdown สำหรับ Telegram\n5. **Telegram Bot API**: ส่งข้อความพร้อม Inline Keyboard\n\n### คุณสมบัติ:\n- ข้อความแบบ Markdown (Bold, Italic)\n- Inline Keyboard สำหรับการโต้ตอบ\n- ส่งไปยัง Chat/Channel เฉพาะ\n- รองรับ Callback Actions\n\n### การตั้งค่า:\n- แก้ไข `YOUR_TELEGRAM_BOT_TOKEN`\n- แก้ไข `YOUR_TELEGRAM_CHAT_ID`\n- แก้ไข `YOUR_GOOGLE_SHEET_ID`\n- ตั้งค่า Google Service Account",
+        "height": 464,
+        "width": 389
+      },
+      "id": "i9j0k1l2-9999-0000-1111-222233334444",
+      "name": "Workflow Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        480,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "no_data"
+            },
+            {
+              "name": "message",
+              "value": "ไม่พบข้อมูลใหม่ใน Google Sheets"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "j0k1l2m3-0000-1111-2222-333344445555",
+      "name": "No Data Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.3,
+      "position": [
+        1380,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Check Data Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Data Exists": {
+      "main": [
+        [
+          {
+            "node": "Set Bot Token",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Data Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process Sheet Data for Telegram": {
+      "main": [
+        [
+          {
+            "node": "Telegram Bot - Send Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Bot Token": {
+      "main": [
+        [
+          {
+            "node": "Process Sheet Data for Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "No Data Response": {
+      "main": [
+        [
+          {
+            "node": "Telegram Bot - No Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "67890123-6789-6789-6789-678901234567",
+  "id": "6",
+  "meta": {
+    "instanceId": "67890123456789012345678901234567"
+  },
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "15",
+      "name": "google-sheets"
+    },
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "16",
+      "name": "telegram-bot"
+    },
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "17",
+      "name": "automation"
+    },
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "18",
+      "name": "inline-keyboard"
+    }
+  ]
+}

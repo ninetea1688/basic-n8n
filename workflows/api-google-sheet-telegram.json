@@ -1,0 +1,110 @@
+{
+  "name": "API to Google Sheets & Telegram",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "e40a0216-7243-4316-928d-176374cf48f5",
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://jsonplaceholder.typicode.com/users",
+        "options": {}
+      },
+      "id": "406d0426-621e-451e-8fe5-a05e2edba824",
+      "name": "HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        470,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "documentId": "",
+        "sheetName": "",
+        "options": {}
+      },
+      "id": "0d6110f0-4dbb-449e-af54-1598471e8bb5",
+      "name": "Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.1,
+      "position": [
+        690,
+        300
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "",
+          "name": ""
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "",
+        "text": "=Successfully added {{ $items('HTTP Request').length }} users to Google Sheet.",
+        "otherOptions": {
+          "parse_mode": "MarkdownV2"
+        },
+        "options": {}
+      },
+      "id": "184b9015-88de-4770-b0bc-7d8b5a7536be",
+      "name": "Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        910,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "",
+          "name": ""
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Google Sheets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Sheets": {
+      "main": [
+        [
+          {
+            "node": "Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "name": "Hello World Workflow",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "f7b1c0e0-1234-4567-8901-234567890123",
+      "name": "When clicking 'Test workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "message",
+              "value": "Hello World from n8n!"
+            },
+            {
+              "name": "timestamp",
+              "value": "={{new Date().toISOString()}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-5678-9012-3456-789012345678",
+      "name": "Set Message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [
+        940,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "📢 **{{$json.message}}**\n\n🕐 Generated at: {{$json.timestamp}}\n\n✅ Your n8n workflow is working perfectly!",
+        "options": {}
+      },
+      "id": "b2c3d4e5-6789-0123-4567-890123456789",
+      "name": "Display Result",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1160,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When clicking 'Test workflow'": {
+      "main": [
+        [
+          {
+            "node": "Set Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Message": {
+      "main": [
+        [
+          {
+            "node": "Display Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "12345678-1234-1234-1234-123456789012",
+  "id": "1",
+  "meta": {
+    "instanceId": "12345678901234567890123456789012"
+  },
+  "tags": [
+    {
+      "createdAt": "2024-01-15T10:00:00.000Z",
+      "updatedAt": "2024-01-15T10:00:00.000Z",
+      "id": "1",
+      "name": "tutorial"
+    }
+  ]
+}

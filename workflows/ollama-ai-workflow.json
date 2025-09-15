@@ -1,0 +1,168 @@
+{
+  "name": "Ollama AI Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ollama-chat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "b8c77db4-7a9a-4c5a-9f3e-1234567890ab",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "ollama-chat"
+    },
+    {
+      "parameters": {
+        "jsCode": "// รับข้อความจาก webhook\nconst userMessage = $json.message || 'สวัสดี';\nconst systemPrompt = $json.system_prompt || 'คุณเป็น AI ผู้ช่วยที่เป็นมิตรและตอบคำถามเป็นภาษาไทย';\n\n// เตรียมข้อมูลสำหรับส่งไป Ollama\nreturn {\n  model: 'llama3.2',\n  prompt: `System: ${systemPrompt}\n\nHuman: ${userMessage}\n\nAssistant:`,\n  stream: false,\n  options: {\n    temperature: 0.7,\n    top_p: 0.9,\n    max_tokens: 1000\n  },\n  user_message: userMessage,\n  timestamp: new Date().toISOString()\n};"
+      },
+      "id": "c9d88eb5-8b0b-5d6a-0g4f-2345678901bc",
+      "name": "Prepare Ollama Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://ollama:11434/api/generate",
+        "options": {
+          "timeout": 60000
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        }
+      },
+      "id": "d0e99fc6-9c1c-6e7b-1h5g-3456789012cd",
+      "name": "Call Ollama API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        680,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ประมวลผลผลลัพธ์จาก Ollama\nconst response = $json.response || 'ขออภัย ไม่สามารถสร้างคำตอบได้';\nconst userMessage = $('Prepare Ollama Request').item(0).json.user_message;\nconst timestamp = $('Prepare Ollama Request').item(0).json.timestamp;\n\n// สร้างผลลัพธ์สำหรับส่งกลับ\nreturn {\n  success: true,\n  user_message: userMessage,\n  ai_response: response.trim(),\n  model: 'llama3.2',\n  timestamp: timestamp,\n  response_time: new Date().toISOString(),\n  // สำหรับแสดงผลใน n8n\n  formatted_response: {\n    question: userMessage,\n    answer: response.trim(),\n    model: 'Llama 3.2 via Ollama',\n    generated_at: new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' })\n  }\n};"
+      },
+      "id": "e1f00gd7-0d2d-7f8c-2i6h-4567890123de",
+      "name": "Process AI Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        900,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      },
+      "id": "f2g11he8-1e3e-8g9d-3j7i-5678901234ef",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 🤖 Ollama AI Workflow\n\n**การทำงาน:**\n1. รับข้อความผ่าน Webhook\n2. เตรียมข้อมูลสำหรับ Ollama\n3. เรียก Ollama API (Llama 3.2)\n4. ประมวลผลและส่งกลับ\n\n**การใช้งาน:**\n```bash\ncurl -X POST http://localhost:5678/webhook/ollama-chat \\\n  -H \"Content-Type: application/json\" \\\n  -d '{\n    \"message\": \"สวัสดี คุณเป็นอย่างไรบ้าง?\",\n    \"system_prompt\": \"คุณเป็น AI ผู้ช่วยที่เป็นมิตร\"\n  }'\n```\n\n**Model:** Llama 3.2\n**Host:** http://ollama:11434",
+        "height": 464,
+        "width": 389
+      },
+      "id": "g3h22if9-2f4f-9h0e-4k8j-6789012345fg",
+      "name": "Workflow Info",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        240,
+        500
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Ollama Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Ollama Request": {
+      "main": [
+        [
+          {
+            "node": "Call Ollama API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Ollama API": {
+      "main": [
+        [
+          {
+            "node": "Process AI Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Process AI Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "ollama-v1",
+  "id": "ollama-ai-workflow",
+  "meta": {
+    "created": "2024-01-01T00:00:00.000Z",
+    "updated": "2024-01-01T00:00:00.000Z"
+  },
+  "tags": [
+    "ollama",
+    "ai",
+    "llama",
+    "chat",
+    "webhook"
+  ]
+}
