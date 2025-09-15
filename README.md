@@ -14,7 +14,7 @@
 ### 1. Clone หรือ Download โปรเจค
 
 ```bash
-git clone [<repository-url>](https://github.com/ninetea1688/basic-n8n.git)
+git clone https://github.com/ninetea1688/basic-n8n.git
 cd n8n-basic
 ```
 
